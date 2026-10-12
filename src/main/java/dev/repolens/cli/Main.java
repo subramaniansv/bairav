@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -77,6 +78,18 @@ public class Main implements Callable<Integer> {
     @Option(names = "--zap", description = "Run an OWASP ZAP active scan against --url targets (own apps only)")
     boolean zap;
 
+    @Option(names = "--load", description = "Run a short k6 load test against --url targets (own apps only; needs k6)")
+    boolean load;
+
+    @Option(names = "--pr-comment", description = "Write pr-comment.md/pr-review.json and post them to a GitHub PR: owner/repo#N or 'auto' (needs GITHUB_TOKEN)")
+    String prComment;
+
+    @Option(names = "--autofix", description = "After scanning, run this agent command per top task; use {prompt_file}. Verified fixes are committed on a new branch (repo must be a clean git tree)")
+    String autofix;
+
+    @Option(names = "--autofix-max", defaultValue = "5", description = "Max tasks to attempt (default: ${DEFAULT-VALUE})")
+    int autofixMax;
+
     @Option(names = "--doctor", description = "Show which external tools are installed, then exit")
     boolean doctor;
 
@@ -107,7 +120,7 @@ public class Main implements Callable<Integer> {
         }
 
         Bairav.Request req = new Bairav.Request(repo, out, timeout, dryRun, build, only, urls, zap, verbose, config,
-                policy, baseline, store, projectId, plugins, failOn, newOnly);
+                policy, baseline, store, projectId, plugins, failOn, newOnly, load);
         Bairav.Result res = Bairav.scan(req);
 
         System.out.println("Total findings: " + res.totalFindings() + (res.diff() == null ? ""
@@ -116,12 +129,56 @@ public class Main implements Callable<Integer> {
         System.out.println("AI fix plan:  " + res.outDir().resolve("ai-fix-plan.md") + "  (+ ai-fix-plan.json)");
         if (Files.isDirectory(res.outDir().resolve("sbom"))) System.out.println("SBOM:         " + res.outDir().resolve("sbom"));
         if (store != null) System.out.println("Stored run:   " + store.toAbsolutePath().normalize().resolve(res.meta().projectId()));
+        if (prComment != null) postPrComment(res);
+        if (autofix != null) runAutofix(req, res);
         if (!res.gate().passed()) {
             System.out.println("\nQUALITY GATE FAILED");
             res.gate().violations().forEach(v -> System.out.println("  - " + v));
             return 2;
         }
         return 0;
+    }
+
+    private void postPrComment(Bairav.Result res) throws Exception {
+        String body = dev.repolens.report.PrComment.render(res.projects(), res.diff(), res.gate());
+        var inline = dev.repolens.report.PrComment.inline(res.projects(), res.diff());
+        Files.writeString(res.outDir().resolve("pr-comment.md"), body);
+        Files.writeString(res.outDir().resolve("pr-review.json"),
+                new com.fasterxml.jackson.databind.ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(inline));
+        System.out.println("PR comment:   " + res.outDir().resolve("pr-comment.md"));
+        var target = dev.repolens.report.PrComment.parseTarget(prComment, System.getenv());
+        String token = System.getenv("GITHUB_TOKEN");
+        if (target == null) {
+            System.out.println("Not a pull request run; comment written but not posted.");
+        } else if (token == null || token.isBlank()) {
+            System.out.println("GITHUB_TOKEN not set; comment written but not posted.");
+        } else {
+            String api = System.getenv().getOrDefault("GITHUB_API_URL", "https://api.github.com");
+            try {
+                dev.repolens.report.PrComment.post(target, body, inline, token, api);
+                System.out.println("Posted PR comment to " + target.repo() + "#" + target.number());
+            } catch (java.io.IOException e) {
+                System.out.println("Could not post PR comment: " + e.getMessage());
+            }
+        }
+    }
+
+    private void runAutofix(Bairav.Request req, Bairav.Result res) throws Exception {
+        var tasks = dev.repolens.ai.AiPlanWriter.buildTasks(repo.toAbsolutePath().normalize(), res.projects());
+        System.out.println("\nAuto-fix: attempting up to " + Math.min(autofixMax, tasks.size()) + " of " + tasks.size() + " tasks");
+        List<dev.repolens.ai.AutoFix.Outcome> outcomes;
+        try {
+            outcomes = dev.repolens.ai.AutoFix.run(repo.toAbsolutePath().normalize(), res.outDir(), tasks, autofix, autofixMax, timeout);
+        } catch (java.io.IOException e) {
+            System.out.println("Auto-fix aborted: " + e.getMessage());
+            return;
+        }
+        outcomes.forEach(o -> System.out.println("  " + (o.fixed() ? "FIXED  " : "SKIPPED") + " " + o.taskId() + " - " + o.detail()));
+        if (outcomes.stream().anyMatch(dev.repolens.ai.AutoFix.Outcome::fixed)) {
+            var after = dev.repolens.ai.AutoFix.rescan(req, res.outDir().resolve("report.json"), res.outDir().resolve("autofix-rescan"));
+            System.out.println("Re-scan: " + after.totalFindings() + " findings"
+                    + (after.diff() == null ? "" : " (" + after.diff().added().size() + " new, " + after.diff().fixed() + " fixed)"));
+        }
     }
 
     private Integer history() throws Exception {
@@ -135,8 +192,9 @@ public class Main implements Callable<Integer> {
         var points = RunStore.history(store.toAbsolutePath().normalize(), id);
         System.out.println("History for " + id + " (" + points.size() + " runs)");
         for (var p : points) {
-            System.out.printf("  %s  %-14s %-8s score %3d  findings %4d  %s%n", p.startedAt(), p.branch(),
-                    p.commit().substring(0, Math.min(8, p.commit().length())), p.overall(), p.findings(), p.grades());
+            System.out.printf("  %s  %-14s %-8s score %3d  findings %4d  %s%s%n", p.startedAt(), p.branch(),
+                    p.commit().substring(0, Math.min(8, p.commit().length())), p.overall(), p.findings(), p.grades(),
+                    p.vitals().isEmpty() ? "" : "  | CWV " + p.vitals());
         }
         return 0;
     }
@@ -152,6 +210,7 @@ public class Main implements Callable<Integer> {
         tools.put("git", "install git (code churn hotspots)");
         tools.put("npm", "install Node.js");
         tools.put("mvn", "brew install maven");
+        tools.put("k6", "brew install k6 (optional, --load)");
         tools.put("zap.sh", "brew install --cask zap (optional, --zap)");
         tools.forEach((t, hint) -> {
             Path p = ProcessRunner.which(t);

@@ -8,7 +8,7 @@
   <artifactId>bairav</artifactId>
   <name>Bairav</name>
   <description>Central code-health analyzer: security, performance, quality, SEO and an AI fix plan.</description>
-  <version>0.3.0</version>
+  <version>0.4.0</version>
   <packaging>jar</packaging>
 
   <properties>

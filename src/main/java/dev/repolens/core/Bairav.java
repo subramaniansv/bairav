@@ -35,7 +35,7 @@ import java.util.Set;
  */
 public final class Bairav {
 
-    public static final String VERSION = "0.3.0";
+    public static final String VERSION = "0.4.0";
 
     private Bairav() {}
 
@@ -49,11 +49,11 @@ public final class Bairav {
     public record Request(Path repo, Path out, int timeoutSec, boolean dryRun, boolean build, Set<String> only,
                           Map<String, String> urls, boolean zap, boolean verbose, Path config, Path policy,
                           String baseline, Path store, String projectId, Path plugins, Severity failOn,
-                          boolean newOnly) {
+                          boolean newOnly, boolean load) {
 
         public static Request of(Path repo, Path out) {
             return new Request(repo, out, 600, false, false, new LinkedHashSet<>(), new LinkedHashMap<>(), false, false,
-                    null, null, null, null, null, null, null, false);
+                    null, null, null, null, null, null, null, false, false);
         }
     }
 
@@ -79,7 +79,7 @@ public final class Bairav {
 
         List<ToolRunner> runners = Runners.withPlugins(r.plugins());
         Analyzer.Options opts = new Analyzer.Options(outDir, r.dryRun(), r.timeoutSec(), r.build(), r.only(), r.urls(),
-                r.zap(), r.verbose());
+                r.zap(), r.verbose(), r.load());
 
         List<ProjectResult> projects = new ArrayList<>();
         Set<String> usedNames = new HashSet<>();

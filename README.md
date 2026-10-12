@@ -25,6 +25,27 @@ It runs locally on the JVM, needs no Docker, and skips any tool that is not inst
 | Build health | LOC, dependency counts, artifact sizes, lockfiles, optional build timing |
 | SEO / GEO / AEO / accessibility | Titles, meta, canonical, Open Graph, JSON-LD, `llms.txt`, AI-bot rules in robots.txt, alt text, landmarks |
 | Dynamic security | OWASP ZAP active scan against your own running app (opt-in) |
+| Supply chain | Unpinned GitHub Actions, workflow permissions / `pull_request_target` / script injection, missing provenance, mutable Docker tags, floating or insecure Maven/npm sources |
+| Compliance | Findings mapped (indicatively) to SOC 2, ISO 27001, PCI-DSS and GDPR controls; summary in `report.json` and the HTML report |
+| Architecture and test health | Controller→repository shortcuts, field injection, unused imports/methods, circular and orphan JS modules, skipped / focused / assertion-free tests |
+| Team metrics | Bus factor, CODEOWNERS, stale branches, oversized commits, DORA proxies from tags (needs a git repo) |
+| Outdated dependencies | Major-version gaps from `npm outdated` / Maven versions plugin, with upgrade effort |
+| Operations | Actuator / health / structured logging / error tracking, `.env` hygiene, prod config smells, Dockerfile / K8s / Terraform (Trivy, with a built-in fallback) |
+| API and database | OpenAPI lint and breaking-change detection (vs `BAIRAV_API_BASE_REF`, default `HEAD`), Flyway / Liquibase migration safety, missing indexes, N+1 queries |
+| Deeper performance | Bundle size per chunk (gzip), source maps in production, heavy libraries, large images, JVM hints; opt-in k6 load test with `--load --url` |
+| Privacy and i18n | Secrets / PII in logs, trackers without consent, PII in localStorage, insecure cookies, missing privacy policy, hard-coded UI strings |
+
+### PR bot and auto-fix
+
+```bash
+# Post/update ONE comment on a PR (new findings only when --baseline is used) + inline review
+GITHUB_TOKEN=... bairav . --baseline auto --pr-comment auto        # or owner/repo#12
+
+# Let an AI agent fix the top tasks; each fix is verified, committed on a new branch, or rolled back
+bairav . --autofix 'my-agent --prompt {prompt_file}' --autofix-max 5   # needs a clean git tree
+```
+
+The agent command also receives `BAIRAV_TASK_FILE` and `BAIRAV_TASK_ID`. After fixing, Bairav re-scans and prints fixed/new counts.
 
 Monorepos are handled automatically: every Maven / Gradle / npm project found is scanned, scored and reported separately.
 

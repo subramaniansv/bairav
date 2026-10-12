@@ -16,10 +16,15 @@ public interface ToolRunner {
 
     /** Everything a runner needs; workDir holds raw outputs and logs for debugging. */
     record Context(RepoInfo repo, Path workDir, boolean dryRun, int timeoutSec, boolean build, String url, boolean zap,
-                   Config config) {
+                   Config config, boolean load) {
+
+        public Context(RepoInfo repo, Path workDir, boolean dryRun, int timeoutSec, boolean build, String url, boolean zap,
+                       Config config) {
+            this(repo, workDir, dryRun, timeoutSec, build, url, zap, config, false);
+        }
 
         public Context(RepoInfo repo, Path workDir, boolean dryRun, int timeoutSec, boolean build, String url, boolean zap) {
-            this(repo, workDir, dryRun, timeoutSec, build, url, zap, new Config());
+            this(repo, workDir, dryRun, timeoutSec, build, url, zap, new Config(), false);
         }
 
         public Path root() {

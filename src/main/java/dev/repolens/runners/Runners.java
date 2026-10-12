@@ -20,7 +20,7 @@ public final class Runners {
 
     public static List<ToolRunner> defaults() {
         return new ArrayList<>(List.of(new HeuristicRunner(), new BuildHealthRunner(), new CodeQualityRunner(),
-                new CoverageRunner(), new SeoRunner(), new SemgrepRunner(), new TrivyRunner(), new SbomLicenseRunner(),
+                new CoverageRunner(), new SeoRunner(), new SemgrepRunner(), new TrivyRunner(), new SbomLicenseRunner(), new SupplyChainRunner(), new ArchitectureRunner(), new GitAnalyticsRunner(), new OutdatedRunner(), new OperationsRunner(), new ApiDbRunner(), new PerformanceDeepRunner(), new LoadTestRunner(), new PrivacyI18nRunner(),
                 new GitleaksRunner(), new OsvScannerRunner(), new NpmAuditRunner(), new SpotBugsRunner(),
                 new LighthouseRunner(), new ZapRunner()));
     }

@@ -20,7 +20,7 @@ import java.util.Set;
 public final class Analyzer {
 
     public record Options(Path outDir, boolean dryRun, int timeoutSec, boolean build, Set<String> only,
-                          java.util.Map<String, String> urls, boolean zap, boolean verbose) {}
+                          java.util.Map<String, String> urls, boolean zap, boolean verbose, boolean load) {}
 
     private Analyzer() {}
 
@@ -30,7 +30,7 @@ public final class Analyzer {
         String rel = scanRoot.equals(projectDir) ? "." : scanRoot.relativize(projectDir).toString();
         String url = o.urls().getOrDefault(name, o.urls().get("*"));
         ToolRunner.Context ctx = new ToolRunner.Context(info, o.outDir().resolve("work").resolve(name), o.dryRun(),
-                o.timeoutSec(), o.build(), url, o.zap(), config);
+                o.timeoutSec(), o.build(), url, o.zap(), config, o.load());
 
         System.out.println("== " + name + " (" + rel + ") " + (info.stacks().isEmpty() ? "[no stack detected]" : info.stacks()));
         List<ToolResult> results = new ArrayList<>();

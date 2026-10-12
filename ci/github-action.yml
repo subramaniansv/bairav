@@ -16,6 +16,7 @@ jobs:
     permissions:
       contents: read
       security-events: write
+      pull-requests: write                # for the PR comment
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }          # full history enables churn hotspots
@@ -36,8 +37,10 @@ jobs:
           key: bairav-${{ github.repository }}-${{ github.run_id }}
           restore-keys: bairav-${{ github.repository }}-
       - name: Scan (PRs fail only on NEW high findings)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          /tmp/bairav/bin/bairav . --out bairav-report \
+          /tmp/bairav/bin/bairav . --out bairav-report --pr-comment auto \
             --baseline auto --fail-on HIGH ${{ github.event_name == 'pull_request' && '--new-only' || '' }}
       - uses: actions/upload-artifact@v4
         if: always()

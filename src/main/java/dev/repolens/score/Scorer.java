@@ -20,8 +20,9 @@ public final class Scorer {
         AREAS.put("Security", new Area(Set.of(Category.SECURITY, Category.DEPENDENCY, Category.SECRETS), 0.40, false));
         AREAS.put("Performance", new Area(Set.of(Category.PERFORMANCE), 0.15, false));
         AREAS.put("Build health", new Area(Set.of(Category.BUILD_HEALTH), 0.10, false));
-        AREAS.put("Quality", new Area(Set.of(Category.QUALITY), 0.10, false));
-        AREAS.put("Compliance", new Area(Set.of(Category.LICENSE), 0.05, false));
+        AREAS.put("Quality", new Area(Set.of(Category.QUALITY, Category.TEAM), 0.10, false));
+        AREAS.put("Operations", new Area(Set.of(Category.OPERATIONS), 0.05, false));
+        AREAS.put("Compliance", new Area(Set.of(Category.LICENSE, Category.SUPPLY_CHAIN, Category.PRIVACY), 0.05, false));
         AREAS.put("SEO", new Area(Set.of(Category.SEO), 0.10, true));
         AREAS.put("GEO/AEO", new Area(Set.of(Category.GEO_AEO), 0.05, true));
         AREAS.put("Accessibility", new Area(Set.of(Category.ACCESSIBILITY), 0.10, true));

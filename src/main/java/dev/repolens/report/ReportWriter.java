@@ -6,6 +6,7 @@ import dev.repolens.model.Finding;
 import dev.repolens.model.ProjectResult;
 import dev.repolens.model.Severity;
 import dev.repolens.model.ToolResult;
+import dev.repolens.owasp.ComplianceMapper;
 import dev.repolens.owasp.OwaspMapper;
 
 import java.io.IOException;
@@ -36,6 +37,9 @@ public final class ReportWriter {
         json.put("meta", meta);
         json.put("gate", gate);
         json.put("projects", projects);
+        Map<String, Object> compliance = new LinkedHashMap<>();
+        projects.forEach(p -> compliance.put(p.name(), ComplianceMapper.summarize(p.findings())));
+        json.put("compliance", compliance);
         if (diff != null) {
             json.put("baselineDiff", Map.of("new", diff.added().size(), "fixed", diff.fixed(), "unchanged", diff.unchanged()));
         }
@@ -110,6 +114,15 @@ public final class ReportWriter {
         OwaspMapper.NAMES.values().stream().sorted().forEach(n ->
                 h.append("<tr><td>").append(esc(n)).append("</td><td>").append(owasp.getOrDefault(n, 0L)).append("</td></tr>"));
         if (owasp.containsKey("Unmapped")) h.append("<tr><td>Unmapped</td><td>").append(owasp.get("Unmapped")).append("</td></tr>");
+        h.append("</table>");
+
+        h.append("<h3>Compliance control mapping <span class='muted'>(indicative, not an audit)</span></h3><table><tr><th>Framework</th><th>Controls with open findings</th></tr>");
+        ComplianceMapper.summarize(p.findings()).forEach((fw, ctl) -> {
+            h.append("<tr><td>").append(esc(fw)).append("</td><td>");
+            if (ctl.isEmpty()) h.append("none");
+            ctl.forEach((c, n) -> h.append(esc(c)).append(" (").append(n).append(") &nbsp; "));
+            h.append("</td></tr>");
+        });
         h.append("</table>");
 
         boolean anyMetric = p.tools().stream().anyMatch(r -> !r.metrics().isEmpty());

@@ -93,6 +93,9 @@ echo 'export PATH="$PATH:'"$PWD"'/bin"' >> ~/.zshrc     # or ~/.bashrc
 |---|---|
 | `BAIRAV_POLICY` | Central policy file (same as `--policy`) |
 | `BAIRAV_STORE` | Central run-history folder (same as `--store`) |
+| `GITHUB_TOKEN` | Needed only for `--pr-comment` posting |
+| `BAIRAV_API_BASE_REF` | Git ref to compare OpenAPI specs against for breaking changes (default `HEAD`) |
+| `BAIRAV_LOAD_VUS` / `BAIRAV_LOAD_DURATION` | k6 virtual users (10) / duration (20s) for `--load` (install with `brew install k6`) |
 | `CHROME_PATH` | Chrome/Chromium binary for Lighthouse if not in a standard location |
 
 ## 7. Troubleshooting
