@@ -1,0 +1,10 @@
+# Central Bairav policy: keep ONE copy (e.g. in a shared repo) and pass it with --policy or BAIRAV_POLICY.
+# Thresholds here are enforced: a project's own .bairav.yml cannot weaken them. Lists are merged.
+minCoverage: 60          # line coverage % below which a finding is raised
+maxComplexity: 15        # cyclomatic complexity per method
+minScore: 50             # gate: every project must score at least this
+failOn: CRITICAL         # gate: exit code 2 if any finding at/above this severity
+licenseDeny: [AGPL, SSPL, GPL-3.0, GPL-2.0]   # HIGH finding
+licenseWarn: [LGPL, MPL, EPL]                 # MEDIUM finding
+allowUnknownLicenses: false
+ignoreRules: []

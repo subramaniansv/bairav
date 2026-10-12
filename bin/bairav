@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Launcher: runs the built jar from anywhere. Usage: bin/bairav <path-to-repo> [options]
+set -euo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+JAR="$(ls -t "$HERE"/target/bairav-*.jar 2>/dev/null | grep -v original | head -1 || true)"
+if [ -z "$JAR" ]; then
+  echo "bairav is not built yet. Run: (cd \"$HERE\" && mvn -q package -DskipTests)" >&2
+  exit 1
+fi
+exec java -jar "$JAR" "$@"

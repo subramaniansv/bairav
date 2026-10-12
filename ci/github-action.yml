@@ -1,0 +1,47 @@
+# Copy to .github/workflows/bairav.yml in the repo you want to scan.
+# Uses a shared central policy + run history so every project is judged the same way.
+name: bairav
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+env:
+  BAIRAV_POLICY: ${{ github.workspace }}/.bairav-policy.yml   # or a path to a shared checkout
+  BAIRAV_STORE: /tmp/bairav-store
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }          # full history enables churn hotspots
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Install scanners
+        run: |
+          pip install semgrep
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+      - name: Get Bairav
+        run: git clone --depth 1 https://github.com/subramaniansv/bairav.git /tmp/bairav && mvn -q -B -f /tmp/bairav/pom.xml package -DskipTests
+      - name: Restore previous run (baseline)
+        uses: actions/cache@v4
+        with:
+          path: /tmp/bairav-store
+          key: bairav-${{ github.repository }}-${{ github.run_id }}
+          restore-keys: bairav-${{ github.repository }}-
+      - name: Scan (PRs fail only on NEW high findings)
+        run: |
+          /tmp/bairav/bin/bairav . --out bairav-report \
+            --baseline auto --fail-on HIGH ${{ github.event_name == 'pull_request' && '--new-only' || '' }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: bairav-report, path: bairav-report }
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with: { sarif_file: bairav-report/report.sarif }

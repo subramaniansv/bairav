@@ -1,0 +1,5 @@
+package dev.repolens.model;
+
+public enum Category {
+    SECURITY, DEPENDENCY, SECRETS, PERFORMANCE, BUILD_HEALTH, QUALITY, SEO, GEO_AEO, ACCESSIBILITY, LICENSE
+}

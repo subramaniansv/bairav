@@ -1,0 +1,10 @@
+target/
+reports/
+bairav-report/
+*.log
+.DS_Store
+.idea/
+*.iml
+.vscode/
+# project-specific configs that should not be shared
+configs/unlearnarc.*
